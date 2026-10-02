@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#1f6b4a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="現場写真メモ">
+<meta name="robots" content="noindex">
+<title>現場写真メモ</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&display=swap">
+<style>
+/* 現場で1枚撮るたびに種類を押す。撮影順の並びが文字列になり、ChatWorkへ貼る。 */
+:root{
+  --bg:#f3f4f2; --panel:#ffffff; --fg:#1d2420; --sub:#5c665f; --line:#d5dad5;
+  --accent:#1f6b4a; --accent-fg:#ffffff; --warn:#b4540a; --ok:#1f6b4a;
+  --font:"BIZ UDPGothic","Hiragino Sans","Yu Gothic",sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#141916; --panel:#1e2521; --fg:#e8ede9; --sub:#9aa69e; --line:#34403a;
+  --accent:#4fb784; --accent-fg:#0d1812; --warn:#e8a05a; --ok:#4fb784; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141916; --panel:#1e2521; --fg:#e8ede9; --sub:#9aa69e; --line:#34403a;
+  --accent:#4fb784; --accent-fg:#0d1812; --warn:#e8a05a; --ok:#4fb784; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font);font-size:16px;
+  padding-inline:16px;padding-block:16px 40px;max-width:560px;margin-inline:auto}
+h1{font-size:20px;margin:0 0 4px}
+.lead{color:var(--sub);font-size:14px;margin:0 0 16px;line-height:1.6}
+section{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:14px}
+h2{font-size:14px;margin:0 0 10px;color:var(--sub);letter-spacing:.04em}
+.counts{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stepper{display:flex;align-items:center;justify-content:space-between;gap:8px;min-width:0}
+.stepper label{font-size:14px;min-width:0}
+.stepper .ctl{display:flex;align-items:center;gap:6px}
+.stepper button{width:40px;height:40px;font-size:20px}
+.stepper output{min-width:1.5em;text-align:center;font-size:18px;font-variant-numeric:tabular-nums}
+button{font-family:inherit;font-size:16px;color:var(--fg);background:var(--bg);border:1px solid var(--line);
+  border-radius:8px;cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.types{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.types button{min-height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:6px}
+.types button b{font-size:17px}
+.types button small{color:var(--sub);font-size:12px;font-variant-numeric:tabular-nums}
+.types button.done small{color:var(--ok)}
+.types button.over small{color:var(--warn);font-weight:700}
+.types button:active{background:var(--accent);color:var(--accent-fg)}
+.sub{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.sub button{padding:8px 12px;font-size:14px}
+.sub button[aria-pressed="true"]{background:var(--accent);color:var(--accent-fg);border-color:var(--accent)}
+.sub-title{font-size:13px;color:var(--sub);margin:12px 0 0}
+ol{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto}
+li{display:flex;gap:10px;align-items:baseline;font-size:15px;padding:6px 8px;border-radius:6px;background:var(--bg)}
+li .n{color:var(--sub);font-variant-numeric:tabular-nums;min-width:2em;text-align:right}
+.row{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.row button{padding:10px 14px;flex:1 1 auto}
+.primary{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:700}
+textarea{width:100%;box-sizing:border-box;min-height:84px;font-family:inherit;font-size:14px;background:var(--bg);
+  color:var(--fg);border:1px solid var(--line);border-radius:8px;padding:10px;resize:vertical}
+.msg{min-height:1.4em;font-size:14px;color:var(--ok);margin:8px 0 0}
+.hint{font-size:13px;color:var(--sub);line-height:1.6;margin:10px 0 0}
+</style>
+<style>*{box-sizing:border-box}body{margin-block:0}html{padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}button,textarea{-webkit-tap-highlight-color:transparent}</style>
+</head>
+<body>
+
+
+<h1>現場写真メモ</h1>
+<p class="lead">写真を1枚撮るたびに、その種類を押します。撮った順の並びができるので、最後にコピーしてChatWorkの写真の部屋へ貼ってください。</p>
+
+<section>
+  <h2>この現場の数（分かれば入力。枚数の目安が出ます）</h2>
+  <div class="counts">
+    <div class="stepper"><label for="roadN">道路の数</label>
+      <div class="ctl"><button type="button" data-step="road" data-d="-1" aria-label="道路を減らす">−</button><output id="roadN">0</output><button type="button" data-step="road" data-d="1" aria-label="道路を増やす">＋</button></div></div>
+    <div class="stepper"><label for="adjN">隣地境界線の数</label>
+      <div class="ctl"><button type="button" data-step="adj" data-d="-1" aria-label="隣地境界線を減らす">−</button><output id="adjN">0</output><button type="button" data-step="adj" data-d="1" aria-label="隣地境界線を増やす">＋</button></div></div>
+  </div>
+</section>
+
+<section>
+  <h2>撮った写真の種類を押す</h2>
+  <div class="types" id="types"></div>
+  <p class="sub-title" id="subTitle" hidden></p>
+  <div class="sub" id="subRow" hidden></div>
+</section>
+
+<section>
+  <h2>撮影順の記録（<span id="total">0</span>枚）</h2>
+  <ol id="list"></ol>
+  <div class="row">
+    <button type="button" id="undo">1つ戻す</button>
+    <button type="button" id="reset">最初から</button>
+  </div>
+</section>
+
+<section>
+  <h2>ChatWorkへ貼る文</h2>
+  <textarea id="out" readonly aria-label="コピーする文"></textarea>
+  <div class="row"><button type="button" class="primary" id="copy">コピー</button></div>
+  <p class="msg" id="msg" role="status"></p>
+  <p class="hint">写真は撮った順に、この記録と同じ順番でChatWorkの部屋へ送ってから、コピーした文を貼ります。順番が入れ替わると種類がずれるので、1枚ずつ撮影順に送ってください。</p>
+</section>
+
+<script>
+(function(){
+  var TYPES = [
+    {k:"全景", exp:function(){return 2}},
+    {k:"道路状況", exp:function(){return 2*cnt.road}},
+    {k:"敷地状況", exp:function(){return 2*cnt.adj}},
+    {k:"既存建物", exp:null},
+    {k:"隣地状況", exp:null},
+    {k:"設備状況", exp:null, subs:["水道メーター","ガスメーター","電気メーター","汚水最終桝","浄化槽","井戸"], subLabel:"設備の種類（押した直後の1枚に付きます）"},
+    {k:"境界点", exp:null},
+    {k:"BM", exp:function(){return 1}, subs:["マンホール","金属鋲","縁石","消火栓"], subLabel:"BMの実物（押した直後の1枚に付きます）"}
+  ];
+  var cnt = {road:0, adj:0};
+  var log = [];
+  var $ = function(id){return document.getElementById(id)};
+
+  function count(k){var n=0;for(var i=0;i<log.length;i++){if(log[i].t===k)n++}return n}
+  function token(e){return e.d ? e.t+(e.t==="境界点"?e.d:":"+e.d) : e.t}
+
+  function render(){
+    var box=$("types"); box.innerHTML="";
+    TYPES.forEach(function(T){
+      var n=count(T.k), exp=T.exp?T.exp():0;
+      var b=document.createElement("button"); b.type="button";
+      var cls=""; if(T.exp&&exp>0){cls = n>exp?"over":(n===exp?"done":"")}
+      b.className=cls;
+      var s=document.createElement("small");
+      s.textContent = (T.exp&&exp>0) ? n+" / "+exp+"枚" : n+"枚";
+      var t=document.createElement("b"); t.textContent=T.k;
+      b.appendChild(t); b.appendChild(s);
+      b.addEventListener("click",function(){add(T)});
+      box.appendChild(b);
+    });
+    var ol=$("list"); ol.innerHTML="";
+    log.forEach(function(e,i){
+      var li=document.createElement("li");
+      var n=document.createElement("span"); n.className="n"; n.textContent=(i+1);
+      var t=document.createElement("span"); t.textContent=token(e);
+      li.appendChild(n); li.appendChild(t); ol.appendChild(li);
+    });
+    ol.scrollTop=ol.scrollHeight;
+    $("total").textContent=log.length;
+    $("out").value = log.length ? "#写真種類 "+log.map(token).join(",") : "";
+    $("roadN").textContent=cnt.road; $("adjN").textContent=cnt.adj;
+    renderSub();
+    try{localStorage.setItem("shashinMemo",JSON.stringify({log:log,cnt:cnt}))}catch(e){}
+  }
+
+  function renderSub(){
+    var last=log[log.length-1], row=$("subRow"), title=$("subTitle");
+    var T=last && TYPES.filter(function(x){return x.k===last.t})[0];
+    if(!T||!T.subs){row.hidden=true;title.hidden=true;return}
+    title.textContent=T.subLabel; title.hidden=false; row.hidden=false; row.innerHTML="";
+    T.subs.forEach(function(s){
+      var b=document.createElement("button"); b.type="button"; b.textContent=s;
+      b.setAttribute("aria-pressed", last.d===s?"true":"false");
+      b.addEventListener("click",function(){last.d=(last.d===s?"":s);render()});
+      row.appendChild(b);
+    });
+  }
+
+  function add(T){
+    var e={t:T.k,d:""};
+    if(T.k==="境界点"){e.d="K"+(count("境界点")+1)}
+    log.push(e); render();
+  }
+
+  document.querySelectorAll("[data-step]").forEach(function(b){
+    b.addEventListener("click",function(){
+      var k=b.getAttribute("data-step"), d=parseInt(b.getAttribute("data-d"),10);
+      cnt[k]=Math.max(0,Math.min(20,cnt[k]+d)); render();
+    });
+  });
+  $("undo").addEventListener("click",function(){log.pop();render()});
+  var armed=false;
+  $("reset").addEventListener("click",function(){
+    var b=$("reset");
+    if(!armed){armed=true;b.textContent="もう一度押すと消えます";
+      setTimeout(function(){armed=false;b.textContent="最初から"},3000);return}
+    armed=false;b.textContent="最初から";log=[];cnt={road:0,adj:0};render();
+  });
+  $("copy").addEventListener("click",function(){
+    var ta=$("out"), m=$("msg");
+    if(!ta.value){m.textContent="まだ記録がありません。";return}
+    function fallback(){ta.focus();ta.select();ta.setSelectionRange(0,ta.value.length);
+      m.textContent="選択しました。長押しでコピーしてください。"}
+    if(navigator.clipboard&&navigator.clipboard.writeText){
+      navigator.clipboard.writeText(ta.value).then(function(){m.textContent="コピーしました。ChatWorkに貼ってください。"},fallback);
+    } else fallback();
+  });
+
+  try{var s=JSON.parse(localStorage.getItem("shashinMemo")||"null");
+    if(s&&s.log){log=s.log;cnt=s.cnt||cnt}}catch(e){}
+  render();
+})();
+</script>
+
+</body>
+</html>
